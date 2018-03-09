@@ -17,7 +17,7 @@ from Queue import Empty
 from ANAPSID.Operators.Join import Join
 from ANAPSID.Decomposer.Tree import Leaf, Node
 from OperatorStructures import Table, Partition, Record
-
+from ANAPSID.NonBlockingOperators.NestedHashJoin import NestedHashJoin
 
 WINDOW_SIZE = 10
 
@@ -134,11 +134,12 @@ class NestedHashJoinFilter(Join):
     def makeInstantiation(self, filter_bag, operator):
         filter_str = ''
         new_vars = ['?'+v for v in self.vars] #TODO: this might be $
-
+        # Existing filters should also be included
+        filter_str = " . ".join(map(str, operator.tree.service.filters))
         #print "making instantiation join filter", filter_bag 
         # When join variables are more than one: FILTER ( )
         if len(self.vars) >= 1:
-            filter_str = ' . FILTER (__expr__)'
+            filter_str += ' . FILTER (__expr__)'
 
             or_expr = []
             for tuple in filter_bag:
