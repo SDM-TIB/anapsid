@@ -61,7 +61,8 @@ class Xgoptional(Optional):
             if (not(tuple2 == "EOF")):
                 try:
                     tuple2 = self.right.get(False)
-                    self.stage1(tuple2, self.right_table, self.left_table, self.vars_left)
+                    if not(tuple2 == 'EOF'):
+                        self.stage1(tuple2, self.right_table, self.left_table, self.vars_left)
                 except Exception:
                     # This catch:
                     # Empty: in tuple2 = self.right.get(False), when the queue is empty.
@@ -120,25 +121,27 @@ class Xgoptional(Optional):
     def probe(self, tuple, resource, rjttable, vars):
         probeTS = time()
         # If the resource is in table, produce results.
-        if resource in rjttable:
-            rjttable.get(resource).setRJTProbeTS(probeTS)
-            list_records = rjttable[resource].records
-
-            # Delete tuple from bag.
-            try:
-                self.bag.remove(tuple)
-            except ValueError:
-                pass
-
-            for record in list_records:
-                res = record.tuple.copy()
-                res.update(tuple)
-                self.qresults.put(res)
+        try:
+            if resource in rjttable:
+                rjttable.get(resource).setRJTProbeTS(probeTS)
+                list_records = rjttable[resource].records
 
                 # Delete tuple from bag.
                 try:
-                    self.bag.remove(record.tuple)
+                    self.bag.remove(tuple)
                 except ValueError:
                     pass
 
+                for record in list_records:
+                    res = record.tuple.copy()
+                    res.update(tuple)
+                    self.qresults.put(res)
+
+                    # Delete tuple from bag.
+                    try:
+                        self.bag.remove(record.tuple)
+                    except ValueError:
+                        pass
+        except Exception as e:
+            pass
         return probeTS
