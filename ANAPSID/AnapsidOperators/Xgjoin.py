@@ -117,7 +117,8 @@ class Xgjoin(Join):
             resource = ''
             #print(tuple)
             for var in self.vars:
-                resource = resource + str(tuple[var])
+                if var in tuple:
+                    resource = resource + str(tuple[var])
 
             # Probe the tuple against its RJT table.
             probeTS = self.probe(tuple, resource, tuple_rjttable)
