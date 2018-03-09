@@ -137,8 +137,52 @@ def includeFilter(jb_triples, fl):
             fl1=fl1+fl2
       elif (isinstance(jb,Service)):
         for f in fl:
-            fl2=includeFilterAuxS(f, jb.triples,jb)
+            fl2=includeFilterAuxSK(f, jb.triples,jb)
             fl1=fl1+fl2
+    return fl1
+
+def includeFilterAuxSK(f, sl, sr):
+    """
+    Added by: Kemele M. Endris
+    updated: includeFilterAuxS(f, sl, sr) below to include filters that all vars in filter exists in any of the triple
+    patterns of a BGP. the previous impl includes them only if all vars are in a single triple pattern
+    :param f:
+    :param sl:
+    :param sr:
+    :return:
+    """
+    fl1 = []
+    serviceFilter = False
+    fvars = dict()
+    vars_f = f.getVars()
+
+    for v in vars_f:
+        fvars[v] = False
+    bgpvars = set()
+
+    for s in sl:
+        bgpvars.update(set(getVars(s)))
+        vars_s = set()
+        if (isinstance(s, Triple)):
+            vars_s.update(set(getVars(s)))
+        else:
+            for t in s.triples:
+                vars_s.update(set(getVars(t)))
+
+        if set(vars_s) & set(vars_f) == set(vars_f):
+            serviceFilter = True
+
+    for v in bgpvars:
+        if v in fvars:
+            fvars[v] = True
+    if serviceFilter:
+        sr.include_filter(f)
+        fl1 = fl1 + [f]
+    else:
+        fs = [v for v in fvars if not fvars[v]]
+        if len(fs) == 0:
+            sr.include_filter(f)
+            fl1 = fl1 + [f]
     return fl1
 
 def includeFilterUnionBlock(jb,f):
