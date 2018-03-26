@@ -46,9 +46,17 @@ import time
 import signal
 import sys, os
 import re
+import logging
 
 endpType = None
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler('.decompositions.log')
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 def contactSource(server, query, queue, buffersize=16384, limit=-1):
     #Contacts the datasource (i.e. real endpoint).
@@ -494,7 +502,7 @@ def createPlan(query, adaptive, wc, buffersize, c, endpointType):
     # Adds the order by operator to the plan. 
     #if (len(query.order_by) > 0):
     #    operatorTree = TreePlan(Xorderby(query.order_by), operatorTree.vars, operatorTree)
-
+    logger.info(operatorTree)
     #print "Physical plan:", operatorTree
     return operatorTree
 

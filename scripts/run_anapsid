@@ -19,6 +19,16 @@ from time import time
 from ANAPSID.Planner import Plan
 from ANAPSID.Planner.Plan import contactSource, contactProxy
 from ANAPSID.Decomposer import decomposer
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler('.decompositions.log')
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 
 def runQuery(query_file, endpoint_file, buffer_size, simulated, res,
              decomposition, p, oo, a, wc, k, endpointType, printResults):
@@ -149,6 +159,7 @@ def printInfo():
     l = (qname + "\t" + str(dt) + "\t" + str(pt) + "\t" + str(t1) + "\t"
          + str(tn) + "\t" + str(c1) + "\t" + str(cn))
     print l
+    logger.log(l)
 
 def onSignal1(s, stackframe):
     #print 'entre en Signal1'
