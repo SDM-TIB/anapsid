@@ -159,7 +159,7 @@ def printInfo():
     l = (qname + "\t" + str(dt) + "\t" + str(pt) + "\t" + str(t1) + "\t"
          + str(tn) + "\t" + str(c1) + "\t" + str(cn))
     print l
-    logger.log(l)
+    logger.info(l)
 
 def onSignal1(s, stackframe):
     #print 'entre en Signal1'
