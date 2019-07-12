@@ -1,18 +1,18 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements the structures used by the Non-Blocking Operators.
 
 @author: Maribel Acosta Deibe
-'''
-from multiprocessing  import Manager
+"""
+
 
 class Record(object):
-    '''
+    """
     Represents a structure that is inserted into the hash table.
     It is composed by a tuple, ats (arrival timestamp) and
     dts (departure timestamp).
-    '''
+    """
     def __init__(self, tuple, ats, dts):
         self.tuple = tuple
         self.ats = ats
@@ -21,26 +21,27 @@ class Record(object):
     def __repr__(self):
         return "("+str(self.tuple)+", "+str(self.ats)+", "+str(self.dts)+")"
 
+
 class Partition(object):
-    '''
+    """
     Represents a bucket of the hash table.
     It is composed by a list of records, and a list of timestamps
     of the form {DTSlast, ProbeTS}
-    '''
+    """
     def __init__(self):
         self.records = []     # List of records
         self.timestamps = []  # List of the form {DTSlas, ProbeTS}
 
 
 class Table(object):
-    '''
+    """
     Represents a hash table.
     It is composed by a list of partitions (buckets) of size n,
     where n is specified in "size".
-    '''
+    """
     def __init__(self):
         self.size = 1
-        self.partitions = [Partition() for x in xrange(self.size)]
+        self.partitions = [Partition() for x in range(self.size)]
 
     def getSize(self):
         return self.size
@@ -50,19 +51,18 @@ class Table(object):
         
         
 class FileDescriptor(object):
-    '''
+    """
     Represents the description of a file, that contains a RJT in sec mem.
     It is composed by the name of the file, the associated resource, 
     the current size (number of tuples), and the timestamp of the last
     RJTTail that have been flushed.
-    '''
-    
+    """
     def __init__(self, file, size, timestamps):
-        #self.manager = Manager()
+        # self.manager = Manager()
         self.file = file
         self.size = size
         self.timestamps = timestamps
-        #self.timestamps = self.manager.list() #set()  #[]
+        # self.timestamps = self.manager.list() #set()  #[]
         
     def getSize(self):
         return self.size
@@ -80,13 +80,17 @@ class FileDescriptor(object):
 #        self.probeTS = probeTS
     
     
-def isOverlapped((x1,x2), (y1,y2)):
-    return (partiallyOverlapped((x1,x2), (y1,y2)) or
-            fullyOverlapped((x1,x2), (y1,y2)))
-    
-def partiallyOverlapped((x1,x2), (y1,y2)):
-    return ((x1 <= y1 <= x2 <= y2) or (y1 <= x1 <= y2 <= x2))
-            
-def fullyOverlapped((x1,x2), (y1,y2)):
-    return ((x1 <= y1 <= y2 <= x2) or (y1 <= x1 <= x2 <= y2))
-        
+def isOverlapped(X, Y):
+    (x1, x2), (y1, y2) = X, Y
+    return (partiallyOverlapped((x1, x2), (y1, y2)) or
+            fullyOverlapped((x1, x2), (y1, y2)))
+
+
+def partiallyOverlapped(X, Y):
+    (x1, x2), (y1, y2) = X, Y
+    return (x1 <= y1 <= x2 <= y2) or (y1 <= x1 <= y2 <= x2)
+
+
+def fullyOverlapped(X, Y):
+    (x1, x2), (y1, y2) = X, Y
+    return (x1 <= y1 <= y2 <= x2) or (y1 <= x1 <= x2 <= y2)

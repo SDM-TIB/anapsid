@@ -21,15 +21,13 @@ class ExactStar(object):
         #     self.other_variables.add(triplet.theobject)
         if not triplet.subject.constant:
             self.star_variable = triplet.subject
-            self.other_variables = set([triplet.theobject]
-                                      if not triplet.theobject.constant else [])
+            self.other_variables = set([triplet.theobject] if not triplet.theobject.constant else [])
         else:
             self.star_variable = triplet.theobject
             self.other_variables = set()
 
     def __repr__(self):
         return str((self.triplets, self.variables, self.star_variable, self.other_variables))
-        # )
 
     def __contains__(self, other):
         """Check if variable `other` is in our variables"""
@@ -68,10 +66,12 @@ class ExactStar(object):
         """Join `triplet` to this star. Checks if it is valid, by the
         definition of star"""
         other_variable = self.get_other_variable(triplet)
-        if other_variable is None: return False
+        if other_variable is None:
+            return False
         self.other_variables.add(other_variable)
         self.add(triplet)
         return True
+
 
 class ExactStarWithSatellites(ExactStar):
     """An implementation for an exact star with satellites.

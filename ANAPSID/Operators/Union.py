@@ -1,5 +1,6 @@
 import abc
 
+
 class _Union(object):
     __metaclass__ = abc.ABCMeta
 
@@ -20,4 +21,3 @@ class _Union(object):
 
     def getJoinCardinality(self, l, r, vars):
         return l.getJoinCardinality(vars) + r.getJoinCardinality(vars)
-

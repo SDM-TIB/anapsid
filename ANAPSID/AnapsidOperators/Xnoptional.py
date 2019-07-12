@@ -1,25 +1,26 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements the Xnjoin operator.
 The intermediate results are represented in a queue.
 
 @author: Maribel Acosta Deibe
-'''
+"""
 from multiprocessing import Queue
 from time import time
 from ANAPSID.Operators.Optional import Optional
-from OperatorStructures import Record, RJTTail
+from .OperatorStructures import Record, RJTTail
+
 
 class Xnoptional(Optional):
 
     def __init__(self, vars_left, vars_right):
-        self.left_table  = dict()
+        self.left_table = dict()
         self.right_table = dict()
-        self.qresults    = Queue()
-        self.vars_left   = set(vars_left)
-        self.vars_right  = set(vars_right)
-        self.vars        = list(self.vars_left & self.vars_right)
+        self.qresults = Queue()
+        self.vars_left = set(vars_left)
+        self.vars_right = set(vars_right)
+        self.vars = list(self.vars_left & self.vars_right)
 
     def instantiate(self, d):
         newvars_left = self.vars_left - set(d.keys())
@@ -28,21 +29,20 @@ class Xnoptional(Optional):
 
     def execute(self, left, right, out):
         # Executes the Xgjoin.
-        self.left     = left
-        self.right    = right
+        self.left = left
+        self.right = right
         self.qresults = out
 
         # Get tuples from queue.
         tuple = self.left.get(True)
 
         # Get the tuples from the queues.
-        while (not(tuple == "EOF")):
+        while not(tuple == "EOF"):
             self.stage1(tuple, self.left_table, self.right_table)
             tuple = self.left.get(True)
 
         # Perform the last probes.
         self.stage3()
-
 
     def stage1(self, tuple, tuple_rjttable, other_rjttable):
         # Stage 1: While one of the sources is sending data.
@@ -63,11 +63,11 @@ class Xnoptional(Optional):
         if resource in other_rjttable:
             other_rjttable.get(resource).updateRecords(record)
             other_rjttable.get(resource).setRJTProbeTS(probeTS)
-            #other_rjttable.get(resource).append(record)
+            # other_rjttable.get(resource).append(record)
         else:
             tail = RJTTail(record, float("inf"))
             other_rjttable[resource] = tail
-            #other_rjttable[resource] = [record]
+            # other_rjttable[resource] = [record]
 
     def stage2(self):
         # Stage 2: When both sources become blocked.
@@ -79,7 +79,6 @@ class Xnoptional(Optional):
         # Put EOF in queue and exit.
         self.qresults.put("EOF")
 
-
     def probe(self, tuple, resource, rjttable, other_rjttable):
         probeTS = time()
 
@@ -87,7 +86,7 @@ class Xnoptional(Optional):
         if resource in rjttable:
             rjttable.get(resource).setRJTProbeTS(probeTS)
             list_records = rjttable[resource].records
-            #list_records = rjttable[resource]
+            # list_records = rjttable[resource]
 
             for record in list_records:
                 res = record.tuple.copy()
@@ -107,8 +106,8 @@ class Xnoptional(Optional):
             # Get the tuples from right queue.
             rtuple = qright.get(True)
 
-            if (not(rtuple == "EOF")):
-                while (not(rtuple == "EOF")):
+            if not(rtuple == "EOF"):
+                while not(rtuple == "EOF"):
                     # Build answer and produce it.
                     rtuple_copy = rtuple.copy()
                     rtuple_copy.update(tuple)
@@ -129,7 +128,7 @@ class Xnoptional(Optional):
                 # Build the empty tuple.
                 rtuple = {}
                 for att in self.right.atts:
-                    rtuple.update({att:''})
+                    rtuple.update({att: ''})
 
                 # Produce the answer,
                 rtuple.update(tuple)

@@ -16,7 +16,7 @@ Installing ANAPSID
 
 ANAPSID is known to run on Debian GNU/Linux and OS X. These instructions were tested 
 on the latest Debian Stable and OS X. The recommended way to
-execute ANAPSID is to use Python 2.7. 
+execute ANAPSID is to use Python 3.6. 
 
 
 1. Download ANAPSID.
@@ -33,7 +33,7 @@ execute ANAPSID is to use Python 2.7.
 
    `$ pip install -r requirements.txt`
 
-   This will install ANAPSID's Python dependencies. Right now, the only library required to execute ANAPSID is ply 3.3 (https://pypi.python.org/pypi/ply/3.3)
+   This will install ANAPSID's Python dependencies. Right now, the only library required to execute ANAPSID is ply 3.9 (https://pypi.python.org/pypi/ply/3.3)
 
 3. When step 2 is done you can now install ANAPSID. This will install
    it only to your current user caged VirtualEnv as to prevent

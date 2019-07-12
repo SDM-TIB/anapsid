@@ -6,5 +6,5 @@ if [ "$#" -lt 5 ]; then
 fi
 
 for query in `ls $1/*`; do
-    (timeout -s 12 300 run_anapsid -e $2 -q $query -p b -s False -b 16384 -o False -d $3 -a True) 2>> $5 >> $4;
+    (timeout -s 12 300 run_anapsid -e $2 -q ${query} -p b -s False -b 16384 -o False -d $3 -a True) 2>> $5 >> $4;
 done;

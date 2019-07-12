@@ -1,25 +1,26 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements a Nested Loop Optional operator.
 The intermediate results are represented as lists.
 
 @author: Maribel Acosta Deibe
-'''
+"""
 from time import time
 from multiprocessing import Queue
 from ANAPSID.Operators.Optional import Optional
-from OperatorStructures import Table, Partition, Record
+from .OperatorStructures import Table, Record
+
 
 class NestedLoopOptional(Optional):
 
     def __init__(self, vars_left, vars_right):
-        self.left_table  = Table()
+        self.left_table = Table()
         self.right_table = Table()
-        self.results     = []
-        self.vars_left   = set(vars_left)
-        self.vars_right  = set(vars_right)
-        self.vars        = list(self.vars_left & self.vars_right)
+        self.results = []
+        self.vars_left = set(vars_left)
+        self.vars_right = set(vars_right)
+        self.vars = list(self.vars_left & self.vars_right)
 
     def instantiate(self, d):
         newvars_left = self.vars_left - set(d.keys())
@@ -35,15 +36,15 @@ class NestedLoopOptional(Optional):
         # Initialize tuple.
         tuple = None
 
-        # GEt tuple from queue.
+        # Get tuple from queue.
         while not(tuple == "EOF"):
             tuple = qleft.get(True)
             self.left.append(tuple)
 
         # Get the variables to join.
-        if (len(self.left)>1):
+        if len(self.left) > 1:
             # Iterate over the lists to get the tuples.
-            while (len(self.left)>1):
+            while len(self.left) > 1:
                 tuple = self.left.pop(0)
                 self.insertAndProbe(tuple)
 
@@ -61,7 +62,7 @@ class NestedLoopOptional(Optional):
         att1 = ''
         for var in self.vars:
             att1 = att1 + tuple[var]
-        i = hash(att1) % self.left_table.size;
+        i = hash(att1) % self.left_table.size
 
         # Create record (tuple, ats, dts).
         record = Record(tuple, time(), 0)
@@ -71,7 +72,6 @@ class NestedLoopOptional(Optional):
 
         # Probe the record against its partition in the other table.
         self.probe(record, i, self.right_table.partitions[i], self.vars, self.right)
-
 
     def probe(self, record, i, partition, var, right):
         # Probe a tuple if the partition is not empty.
@@ -84,7 +84,6 @@ class NestedLoopOptional(Optional):
             # If the partition was empty, or any join was produced, then contact the source.
             # If no match in the contacted source were produced, then concatenate with empty tuple.
             for r in partition.records:
-
                 if self.isDuplicated(record, r):
                     break
 
@@ -101,7 +100,7 @@ class NestedLoopOptional(Optional):
                     self.results.append(res)
 
             # Empty partition or no matches were found.
-            if ((len(partition.records) == 0) or not(anyjoin)):
+            if len(partition.records) == 0 or not anyjoin:
                 instances = []
                 for v in var:
                     instances = instances + [record.tuple[v]]
@@ -110,17 +109,16 @@ class NestedLoopOptional(Optional):
                 qright = Queue()
                 right.execute(self.vars, instances, qright)
 
-
                 # This is the join.
                 # Insert in right table, and produce the results.
                 # Get the tuples from right queue.
                 rtuple = qright.get(True)
-                if (not(rtuple == "EOF")):
-                    while (not(rtuple == "EOF")):
+                if not(rtuple == "EOF"):
+                    while not(rtuple == "EOF"):
                         res2 = rtuple.copy()
 
                         for v in var:
-                            res2.update({v:record.tuple[v]})
+                            res2.update({v: record.tuple[v]})
 
                         reg = Record(res2, time(), 0)
                         self.right_table.insertRecord(i, reg)
@@ -137,15 +135,13 @@ class NestedLoopOptional(Optional):
                     res = {}
 
                     for k in self.right.atts:
-                        res.update({k:''})
+                        res.update({k: ''})
 
                     reg = Record(res, time(), 0)
                     self.right_table.insertRecord(i, reg)
 
                     res.update(record.tuple)
                     self.results.append(res)
-
-
 
     def isDuplicated(self, record1, record2):
         # Verify if the tuples has been already probed.

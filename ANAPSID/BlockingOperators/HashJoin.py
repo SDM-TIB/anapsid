@@ -1,4 +1,4 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements a Hash Join operator.
@@ -6,18 +6,19 @@ The intermediate results are represented as a Queue, but it doesn't
 work until all the tuples are arrived.
 
 @author: Maribel Acosta Deibe
-'''
+"""
 from time import time
-from OperatorStructures import Table, Record
+from .OperatorStructures import Table, Record
 from ANAPSID.Operators.Join import Join
+
 
 class HashJoin(Join):
 
     def __init__(self, vars):
-        self.left_table  = Table()
+        self.left_table = Table()
         self.right_table = Table()
-        self.results     = []
-        self.vars        = vars
+        self.results = []
+        self.vars = vars
 
     def instantiate(self, d):
         newvars = self.vars - set(d.keys())
@@ -34,12 +35,12 @@ class HashJoin(Join):
         tuple2 = None
 
         # Get the tuples from the queues.
-        while (not(tuple1 == "EOF") or not(tuple2 == "EOF")):
+        while not(tuple1 == "EOF") or not(tuple2 == "EOF"):
             # Try to get tuple from left queue.
             if not(tuple1 == "EOF"):
                 try:
                     tuple1 = qleft.get(False)
-                    #print tuple1
+                    # print(tuple1)
                     self.left.append(tuple1)
                 except Exception:
                     # This catch:
@@ -50,7 +51,7 @@ class HashJoin(Join):
             if not(tuple2 == "EOF"):
                 try:
                     tuple2 = qright.get(False)
-                    #print tuple2
+                    # print(tuple2)
                     self.right.append(tuple2)
                 except Exception:
                     # This catch:
@@ -58,9 +59,9 @@ class HashJoin(Join):
                     pass
 
         # Get the variables to join.
-        if ((len(self.left) > 1) and (len(self.right) > 1)):
+        if (len(self.left) > 1) and (len(self.right) > 1):
             # Iterate over the lists to get the tuples.
-            while ((len(self.left) > 1) or (len(self.right) > 1)):
+            while (len(self.left) > 1) or (len(self.right) > 1):
                 if len(self.left) > 1:
                     self.insertAndProbe(self.left.pop(0), self.left_table, self.right_table)
                 if len(self.right) > 1:
@@ -75,12 +76,12 @@ class HashJoin(Join):
 
     def insertAndProbe(self, tuple, table1, table2):
         # Insert the tuple in its corresponding partition and probe.
-        #print tuple
+        # print(tuple)
         # Get the attribute(s) to apply hash.
         att = ''
         for var in self.vars:
             att = att + tuple[var]
-        i = hash(att) % table1.size;
+        i = hash(att) % table1.size
 
         # Insert record in partition.
         record = Record(tuple, time(), 0)
@@ -89,11 +90,9 @@ class HashJoin(Join):
         # Probe the record against its partition in the other table.
         self.probe(record, table2.partitions[i], self.vars)
 
-
     def probe(self, record, partition, var):
         # Probe a tuple if the partition is not empty.
         if partition:
-
             # For every record in the partition, check if it is duplicated.
             # Then, check if the tuple matches for every join variable.
             # If there is a join, concatenate the tuples and produce result.
@@ -111,7 +110,6 @@ class HashJoin(Join):
                     res = record.tuple.copy()
                     res.update(r.tuple)
                     self.results.append(res)
-
 
     def isDuplicated(self, record1, record2):
         # Verify if the tuples has been already probed.

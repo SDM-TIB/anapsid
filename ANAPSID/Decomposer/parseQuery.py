@@ -1,6 +1,6 @@
 from ply import lex, yacc
 
-from services import Query, Argument, Triple, UnionBlock, JoinBlock, Optional, Filter, Expression
+from .services import Query, Argument, Triple, UnionBlock, JoinBlock, Optional, Filter, Expression
 
 # Lexer
 
@@ -91,7 +91,7 @@ tokens = [
 
 def t_ID(t):
     r'[a-zA-Z_][a-zA-Z_0-9\-]*'
-    # print t
+    # print(t)
     t.type = reserved.get(t.value.upper(), 'ID')  # Check for reserved words
     return t
 
@@ -163,7 +163,6 @@ lexer = lex.lex()
 
 
 # Parser
-
 def p_parse_sparql_0(p):
     """
     parse_sparql : prefix_list query order_by limit offset 
@@ -362,7 +361,7 @@ def p_union_block_1(p):
     union_block : pjoin_block rest_union_block pjoin_block 
     """
     punion = [JoinBlock(p[1])] + p[2]
-    if (p[3] != []):
+    if p[3]:
         pjoin = [UnionBlock(punion)] + p[3]
         p[0] = [JoinBlock(pjoin)]
     else:
@@ -415,9 +414,9 @@ def p_join_block_0(p):
     """
     join_block : LKEY union_block RKEY rest_join_block 
     """
-    if (p[4] != [] and isinstance(p[4][0], Filter)):
+    if p[4] != [] and isinstance(p[4][0], Filter):
         p[0] = [UnionBlock(p[2])] + p[4]
-    elif (p[4] != []):
+    elif p[4]:
         p[0] = [UnionBlock(p[2])] + [JoinBlock(p[4])]
     else:
         p[0] = [UnionBlock(p[2])]
@@ -502,11 +501,12 @@ def p_bgp_4(p):
 #    bgp_arg = p[2] + p[3]
 #    p[0] = UnionBlock(JoinBlock(bgp_arg))
 
+
 def p_bgp_6(p):
     """
     bgp : LKEY join_block RKEY
     """
-    if (len(p[2]) == 1):
+    if len(p[2]) == 1:
         p[0] = p[2][0]
     else:
         p[0] = JoinBlock(p[2])
@@ -952,11 +952,10 @@ def p_predicate_rdftype(p):
         value = '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>'
         p[0] = Argument(value, True)
     else:
-        print
-        'raising'
+        print('raising')
         p_error(p[1])
         raise SyntaxError
-        # print '...'
+        # print('...')
 
 
 def p_predicate_uri(p):
@@ -1050,8 +1049,7 @@ def p_object_constant_3(p):
 
 
 def p_error(p):
-    print
-    p
+    print(p)
     if isinstance(p, str):
         value = p
     else:
@@ -1063,7 +1061,5 @@ parser = yacc.yacc(debug=0)
 
 
 # Helpers
-
 def parse(string):
     return parser.parse(string, lexer=lexer) 
-

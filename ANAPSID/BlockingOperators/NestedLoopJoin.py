@@ -1,23 +1,24 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements a Nested Loop Join operator.
 The intermediate results are represented as lists.
 
 @author: Maribel Acosta Deibe
-'''
+"""
 from time import time
 from multiprocessing import Queue
 from ANAPSID.Operators.Join import Join
-from OperatorStructures import Table, Partition, Record
+from .OperatorStructures import Table, Record
+
 
 class NestedLoopJoin(Join):
 
     def __init__(self, vars):
-        self.left_table  = Table()
+        self.left_table = Table()
         self.right_table = Table()
-        self.results     = []
-        self.vars        = vars
+        self.results = []
+        self.vars = vars
 
     def execute(self, qleft, qright, out):
         # Executes the Nested Loop Join.
@@ -34,9 +35,9 @@ class NestedLoopJoin(Join):
             self.left.append(tuple)
 
         # Get the variables to join.
-        if (len(self.left)>1):
+        if len(self.left) > 1:
             # Iterate over the lists to get the tuples.
-            while (len(self.left)>1):
+            while len(self.left) > 1:
                 tuple = self.left.pop(0)
                 self.insertAndProbe(tuple)
 
@@ -54,7 +55,7 @@ class NestedLoopJoin(Join):
         att1 = ''
         for var in self.vars:
             att1 = att1 + tuple[var]
-        i = hash(att1) % self.left_table.size;
+        i = hash(att1) % self.left_table.size
 
         # Create record (tuple, ats, dts).
         record = Record(tuple, time(), 0)
@@ -64,7 +65,6 @@ class NestedLoopJoin(Join):
 
         # Probe the record against its partition in the other table.
         self.probe(record, i, self.right_table.partitions[i], self.vars, self.right)
-
 
     def probe(self, record, i, partition, var, right):
         # Probe a tuple if the partition is not empty.
@@ -76,7 +76,6 @@ class NestedLoopJoin(Join):
             # If there is a join, concatenate the tuples and produce result.
             # If the partition was empty, or any join was produced, then contact the source.
             for r in partition.records:
-
                 if self.isDuplicated(record, r):
                     break
 
@@ -93,7 +92,7 @@ class NestedLoopJoin(Join):
                     self.results.append(res)
 
             # Empty partition or no matches were found.
-            if ((len(partition.records) == 0) or not(anyjoin)):
+            if len(partition.records) == 0 or not anyjoin:
                 instances = []
                 for v in var:
                     instances = instances + [record.tuple[v]]
@@ -108,7 +107,7 @@ class NestedLoopJoin(Join):
                     res2 = rtuple.copy()
 
                     for v in var:
-                        res2.update({v:record.tuple[v]})
+                        res2.update({v: record.tuple[v]})
 
                     reg = Record(res2, time(), 0)
                     self.right_table.insertRecord(i, reg)
@@ -118,7 +117,6 @@ class NestedLoopJoin(Join):
                     self.results.append(res)
 
                     rtuple = qright.get(True)
-
 
     def isDuplicated(self, record1, record2):
         # Verify if the tuples has been already probed.

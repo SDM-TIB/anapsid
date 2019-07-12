@@ -1,6 +1,4 @@
 from __future__ import division
-from Tree import Node, Leaf
-import string
 import os
 
 
@@ -77,8 +75,7 @@ class Service(object):
             triples_str = self.triples.show(x + "    ")
         filters_str = " . \n".join(map(pp, self.filters)) + "  \n".join(map(pp, self.filter_nested))
 
-        return (x + "SERVICE <" + self.endpoint + "> { \n" + triples_str
-                + filters_str + "\n" + x + "}")
+        return x + "SERVICE <" + self.endpoint + "> { \n" + triples_str + filters_str + "\n" + x + "}"
 
     def show2(self, x):
         def pp(t):
@@ -156,7 +153,7 @@ class Query(object):
     def __repr__(self):
         body_str = str(self.body)
         args_str = " ".join(map(str, self.args))
-        if self.args == []:
+        if not self.args:
             args_str = "*"
         if self.distinct:
             d = "DISTINCT "
@@ -167,7 +164,7 @@ class Query(object):
     def instantiate(self, d):
         new_args = []
         for a in self.args:
-            an = string.lstrip(string.lstrip(self.subject.name, "?"), "$")
+            an = self.subject.name.lstrip("?").lstrip("$")
             if not (an in d):
                 new_args.append(a)
         return Query(self.prefs, new_args, self.body.instantiate(d), self.distinct)
@@ -175,7 +172,7 @@ class Query(object):
     def instantiateFilter(self, d, filter_str):
         new_args = []
         for a in self.args:
-            an = string.lstrip(string.lstrip(self.subject.name, "?"), "$")
+            an = self.subject.name.lstrip("?").lstrip("$")
             if not (an in d):
                 new_args.append(a)
         return Query(self.prefs, new_args, self.body, self.distinct, self.filter_nested + ' ' + filter_str)
@@ -190,10 +187,9 @@ class Query(object):
         return self.constantNumber() / self.places()
 
     def show(self):
-
         body_str = self.body.show(" ")
         args_str = " ".join(map(str, self.args))
-        if self.args == []:
+        if not self.args:
             args_str = "*"
         if self.distinct:
             d = "DISTINCT "
@@ -202,10 +198,9 @@ class Query(object):
         return self.getPrefixes() + "SELECT " + d + args_str + "\nWHERE {" + body_str + "\n" + self.filter_nested + "\n}"
 
     def show2(self):
-
         body_str = self.body.show2(" ")
         args_str = " ".join(map(str, self.args))
-        if self.args == []:
+        if not self.args:
             args_str = "*"
         if self.distinct:
             d = "DISTINCT "
@@ -222,14 +217,12 @@ class Query(object):
         return r
 
     def getJoinVars(self):
-
         join_vars = getJoinVarsUnionBlock(self.body)
         join_vars = [v for v in join_vars if join_vars.count(v) > 1]
 
         return set(join_vars)
 
     def getJoinVars2(self):
-
         join_vars = []
 
         for s in self.body:
@@ -244,7 +237,6 @@ class Query(object):
         return set(join_vars)
 
     def getTreeRepresentation(self):
-
         l0 = self.body
         while len(l0) > 1:
             l1 = []
@@ -592,8 +584,8 @@ class Filter(object):
         self.expr = expr
 
     def __repr__(self):
-        if (self.expr.op == 'REGEX' or self.expr.op == 'sameTERM' or self.expr.op == 'langMATCHES'):
-            if (self.expr.op == 'REGEX' and self.expr.right.desc != False):
+        if self.expr.op == 'REGEX' or self.expr.op == 'sameTERM' or self.expr.op == 'langMATCHES':
+            if self.expr.op == 'REGEX' and self.expr.right.desc is not False:
                 return "\n" + "FILTER " + self.expr.op + "(" + str(
                     self.expr.left) + "," + self.expr.right.name + "," + self.expr.right.desc + ")"
             else:
@@ -602,8 +594,8 @@ class Filter(object):
             return "\n" + "FILTER (" + str(self.expr) + ")"
 
     def show(self, x):
-        if (self.expr.op == 'REGEX'):
-            if (self.expr.right.desc != False):
+        if self.expr.op == 'REGEX':
+            if self.expr.right.desc is not False:
                 return "\n" + "FILTER " + self.expr.op + "(" + str(
                     self.expr.left) + "," + self.expr.right.name + "," + self.expr.right.desc + ")"
             else:
@@ -748,6 +740,7 @@ unaryFunctor = {
     '<http://www.w3.org/2001/XMLSchema#unsignedByte>',
     '<http://www.w3.org/2001/XMLSchema#positiveInteger>'
 }
+
 binaryFunctor = {
     'REGEX',
     'SAMETERM',
@@ -766,32 +759,30 @@ class Expression(object):
         self.right = right
 
     def __repr__(self):
-        if (self.op in unaryFunctor):
-            return (self.op + "(" + str(self.left) + ")")
-        elif (self.op in binaryFunctor):
-            if (self.op == 'REGEX' and self.right.desc != False):
-                return (self.op + "(" + str(self.left) + "," + self.right.name + "," + self.right.desc + ")")
+        if self.op in unaryFunctor:
+            return self.op + "(" + str(self.left) + ")"
+        elif self.op in binaryFunctor:
+            if self.op == 'REGEX' and self.right.desc is not False:
+                return self.op + "(" + str(self.left) + "," + self.right.name + "," + self.right.desc + ")"
             else:
-                return (self.op + "(" + str(self.left) + "," + str(self.right) + ")")
-        elif (self.right is None):
-            return (self.op + str(self.left))
+                return self.op + "(" + str(self.left) + "," + str(self.right) + ")"
+        elif self.right is None:
+            return self.op + str(self.left)
         else:
-            return ("(" + str(self.left) + " " + self.op + " " + str(self.right) + ")")
+            return "(" + str(self.left) + " " + self.op + " " + str(self.right) + ")"
 
     def getVars(self):
         # if (self.op=='REGEX' or self.op == 'xsd:integer' or self.op=='!' or self.op == 'BOUND' or self.op == 'ISIRI' or self.op == 'ISURI' or self.op == 'ISBLANK' or self.op == 'ISLITERAL' or self.op == 'STR' or self.op == 'LANG' or self.op == 'DATATYPE'):
-        if ((self.op in unaryFunctor) or (self.op in binaryFunctor) or (self.right is None)):
+        if (self.op in unaryFunctor) or (self.op in binaryFunctor) or (self.right is None):
             return self.left.getVars()
         else:
             return self.left.getVars() + self.right.getVars()
 
     def instantiate(self, d):
-        return Expression(self.op, self.left.instantiate(d),
-                          self.right.instantiate(d))
+        return Expression(self.op, self.left.instantiate(d), self.right.instantiate(d))
 
     def instantiateFilter(self, d, filter_str):
-        return Expression(self.op, self.left.instantiateFilter(d, filter_str),
-                          self.right.instantiateFilter(d, filter_str))
+        return Expression(self.op, self.left.instantiateFilter(d, filter_str), self.right.instantiateFilter(d, filter_str))
 
     def allTriplesGeneral(self):
         return False
@@ -803,13 +794,13 @@ class Expression(object):
         return
 
     def places(self):
-        if ((self.op in unaryFunctor) or (self.op == 'REGEX' and self.right.desc == False)):
+        if (self.op in unaryFunctor) or (self.op == 'REGEX' and self.right.desc is False):
             return self.left.places()
         else:
             return self.left.places() + self.right.places()
 
     def constantNumber(self):
-        if ((self.op in unaryFunctor) or (self.op == 'REGEX' and self.expr.desc == False)):
+        if (self.op in unaryFunctor) or (self.op == 'REGEX' and self.expr.desc is False):
             return self.left.constantNumber()
         else:
             return self.left.constantNumber() + self.right.constantNumber()
@@ -826,17 +817,26 @@ class Triple(object):
         self.isGeneral = False
 
     def __repr__(self):
-        return ("\n        " + self.subject.name + " " + self.predicate.name + " "
-                + self.theobject.name)
+        return "\n        " + self.subject.name + " " + self.predicate.name + " " + self.theobject.name
 
     def setGeneral(self, ps, genPred):
         self.isGeneral = (getUri(self.predicate, ps) in genPred)
 
     def __eq__(self, other):
-
         return ((self.subject == other.subject) and
                 (self.predicate == other.predicate) and
                 (self.theobject == other.theobject))
+
+    def __lt__(self, other):
+        if other.subject.constant and not self.subject.constant:
+            return False
+        if self.subject.constant and not other.subject.constant:
+            return True
+        if other.predicate.constant and self.predicate.constant and other.theobject.constant and not self.theobject.constant:
+            return False
+        if other.predicate.constant and self.predicate.constant and self.theobject.constant and not other.theobject.constant:
+            return True
+        return self.constantPercentage() > other.constantPercentage()
 
     def __hash__(self):
         return hash((self.subject, self.predicate, self.theobject))
@@ -855,7 +855,6 @@ class Triple(object):
         return x + self.subject.name + " " + self.predicate.name + " " + self.theobject.name
 
     def getVars(self):
-
         l = []
         if not self.subject.constant:
             l.append(self.subject.name)
@@ -864,19 +863,18 @@ class Triple(object):
         return l
 
     def getPredVars(self):
-
         l = []
         if not self.predicate.constant:
             l.append(self.predicate.name)
         return l
 
     def places(self):
-        return 3;
+        return 3
 
     def instantiate(self, d):
-        sn = string.lstrip(string.lstrip(self.subject.name, "?"), "$")
-        pn = string.lstrip(string.lstrip(self.predicate.name, "?"), "$")
-        on = string.lstrip(string.lstrip(self.theobject.name, "?"), "$")
+        sn = self.subject.name.lstrip("?").lstrip("$")
+        pn = self.predicate.name.lstrip("?").lstrip("$")
+        on = self.theobject.name.lstrip("?").lstrip("$")
         if (not self.subject.constant) and (sn in d):
             s = Argument(d[sn], True)
         else:
@@ -950,7 +948,6 @@ class Argument(object):
             return [self.name]
 
     def getConsts(self):
-
         if self.constant:
             n = self.name
             if self.datatype is not None:
@@ -979,7 +976,7 @@ def readGeneralPredicates(fileName):
     l = []
     l0 = f.readline()
     while not l0 == '':
-        l0 = string.rstrip(l0, '\n')
+        l0 = l0.rstrip('\n')
         l.append(l0)
         l0 = f.readline()
     f.close()
@@ -999,8 +996,8 @@ def getUri(p, prefs):
 def prefix(p):
     s = p.name
     pos = s.find(":")
-    if (not (s[0] == "<")) and pos > -1:
-        return (s[0:pos].strip(), s[(pos + 1):].strip())
+    if (not(s[0] == "<")) and pos > -1:
+        return s[0:pos].strip(), s[(pos + 1):].strip()
 
     return None
 
@@ -1013,5 +1010,3 @@ def getPrefs(ps):
         v = p[(pos + 1):len(p)].strip()
         prefDict[c] = v
     return prefDict
-
-

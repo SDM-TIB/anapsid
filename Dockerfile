@@ -1,13 +1,13 @@
 
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 MAINTAINER Kemele M. Endris <keme686@gmail.com>
 
 USER root
 
-#Python 2.7 installation
+# Python 3.6 installation
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends  nano wget git curl && \
-    apt-get install -y --no-install-recommends python2.7 python-pip python-setuptools && \
+    apt-get install -y --no-install-recommends nano wget git curl && \
+    apt-get install -y --no-install-recommends python3.6 python-pip python-setuptools && \
     pip install --upgrade pip
 
 ADD . /anapsid

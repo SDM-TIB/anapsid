@@ -1,4 +1,4 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Represents a blocking plan, where a process is created only
@@ -6,7 +6,7 @@ in the leaves of the tree (to contact the sources). The
 intermediate results are represented as lists.
 
 @author: Maribel Acosta Deibe
-'''
+"""
 import string
 from multiprocessing import Process, Queue
 from SPARQLWrapper import SPARQLWrapper, JSON
@@ -14,10 +14,10 @@ from ANAPSID.Catalog.Catalog import Catalog
 
 
 def contactSource(server, query, queue):
-    '''
+    """
     Contacts the datasource (i.e. endpoint).
     The hole answer is represented as a list that is stored in a queue.
-    '''
+    """
     # Build the query and contact the source.
     sparql = SPARQLWrapper(server)
     sparql.setQuery(query)
@@ -37,20 +37,20 @@ def contactSource(server, query, queue):
 #        #TODO: queue.put(eval(elem.rstrip()))
 #        resint.append(eval(elem.rstrip()))
 
-    #queue.put("EOF")
+    # queue.put("EOF")
     # The list is added to the queue.
     queue.put(reslist)
 
 
 class IndependentOperator(object):
-    '''
+    """
     Implements an operator that can be resolved independently.
 
     It receives as input the url of the server to be contacted, and the
     filename that contains the query.
 
     The execute() method gets the list of results from a queue and returns it.
-    '''
+    """
     def __init__(self, server, filename):
         self.server = server
         self.filename = filename
@@ -64,19 +64,19 @@ class IndependentOperator(object):
     def execute(self):
         # Evaluate the independent operator.
         res = self.q.get()
-        #TODO:
-        #res = []
-        #elem = self.q.get()
-        #while (elem != "EOF"):
-        #    res.append(eval(elem.rstrip()))
-        #    elem = self.q.get()
+        # TODO:
+        # res = []
+        # elem = self.q.get()
+        # while (elem != "EOF"):
+        #     res.append(eval(elem.rstrip()))
+        #     elem = self.q.get()
         self.p.join()
 
         return res
 
 
 class DependentOperator(object):
-    '''
+    """
     Implements an operator that must be resolved with an instance.
 
     It receives as input the url of the server to be contacted,
@@ -84,7 +84,7 @@ class DependentOperator(object):
 
     The execute() method performs a semantic check. If the instance
     can be derreferenced from the source, it will contact the source.
-    '''
+    """
     def __init__(self, server, filename):
         self.server = server
         self.filename = filename
@@ -104,7 +104,7 @@ class DependentOperator(object):
             self.query = string.replace(self.query, "?" + variables[i], "<" + instances[i] + ">")
 
         # If the instance has no ?query. Example: DESCRIBE ---
-        if (instances[0].find("sparql?query") == -1):
+        if instances[0].find("sparql?query") == -1:
             pos = instances[0].find("/resource")
             pre = instances[0][0:pos]
 
@@ -116,7 +116,7 @@ class DependentOperator(object):
                     # Contact the source.
                     pos = prefixes.index(pre)
                     self.p = Process(target=contactSource,
-                              args=(server, self.query, self.q,))
+                                     args=(server, self.query, self.q,))
                     self.p.start()
                     res = self.q.get()
                     self.p.join()
@@ -129,21 +129,21 @@ class DependentOperator(object):
     def getQueryAttributes(self):
         # Read the query from file and apply lower case.
         query = open(self.filename).read()
-        query2 = string.lower(query)
+        query2 = query.lower()
 
         # Extract the variables, separated by commas.
         # TODO: it supposes that there's no from clause.
-        begin = string.find(query2, "select")
+        begin = query2.find("select")
         begin = begin + len("select")
-        end = string.find(query2, "where")
+        end = query2.find("where")
         listatts = query[begin:end]
-        listatts = string.split(listatts, " ")
+        listatts = listatts.split(" ")
 
         # Iterate over the list of attributes, and delete "?".
         outlist = []
         for att in listatts:
-            if ((len(att) > 0) and (att[0] == '?')):
-                if ((att[len(att)-1] == ',') or (att[len(att)-1] == '\n')):
+            if (len(att) > 0) and (att[0] == '?'):
+                if (att[len(att)-1] == ',') or (att[len(att)-1] == '\n'):
                     outlist = outlist + [att[1:len(att)-1]]
                 else:
                     outlist = outlist + [att[1:len(att)]]
@@ -152,7 +152,7 @@ class DependentOperator(object):
 
 
 class TreePlan(object):
-    '''
+    """
     Represents a plan to be executed by the engine.
 
     It is composed by a left node, a right node, and an operator node.
@@ -162,7 +162,7 @@ class TreePlan(object):
     The execute() method evaluates the plan.
     The operator is evaluated when left and right are done.
     If the right node is an independent operator or a subtree, it is evaluated.
-    '''
+    """
     def __init__(self, operator, left=None, right=None):
         self.operator = operator
         self.left = left
@@ -176,7 +176,7 @@ class TreePlan(object):
 
             # Check the right node to determine if evaluate it or not.
             if ((self.right.__class__.__name__ == "IndependentOperator") or
-                (self.right.__class__.__name__ == "TreePlan")):
+                    (self.right.__class__.__name__ == "TreePlan")):
                 resright = self.right.execute()
             else:
                 resright = self.right

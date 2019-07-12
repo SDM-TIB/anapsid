@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Created on Jan 14, 2011
 Script to execute Anapsid.
 Use signal 12 to terminate the script and obtain the results until that moment
@@ -9,12 +9,12 @@ Use signal 12 to terminate the script and obtain the results until that moment
 @author: Gabriela Montoya
 
 Last modification: June, 2013.
-'''
-
+"""
 import getopt
-import sys, os, signal
-import string
-from multiprocessing import Process, Queue, active_children, Manager
+import sys
+import os
+import signal
+from multiprocessing import Process, Queue, active_children
 from time import time
 from ANAPSID.Planner import Plan
 from ANAPSID.Planner.Plan import contactSource, contactProxy
@@ -37,9 +37,9 @@ def runQuery(query_file, endpoint_file, buffer_size, simulated, res,
     else:
         contact = contactSource
     query = open(query_file).read()
-    pos = string.rfind(query_file, "/")
+    pos = query_file.rfind("/")
     qu = query_file[pos+1:]
-    pos2 = string.rfind(qu, ".")
+    pos2 = qu.rfind(".")
     if pos2 > -1:
         qu = qu[:pos2]
     global qname
@@ -58,35 +58,34 @@ def runQuery(query_file, endpoint_file, buffer_size, simulated, res,
     qname = qu
     time1 = time()
 
-    if oo: # if the query is in Sparql 1.1
-       new_query = decomposer.makePlan2(query, p)
+    if oo:  # if the query is in Sparql 1.1
+        new_query = decomposer.makePlan2(query, p)
     else:
-       new_query = decomposer.makePlan(query, endpoint_file, decomposition, p, contact)
+        new_query = decomposer.makePlan(query, endpoint_file, decomposition, p, contact)
 
     dt = time() - time1
 
-    if (p == "d") or (k == "y"): # to show the decomposition or the plan
-        print str(new_query)
+    if (p == "d") or (k == "y"):  # to show the decomposition or the plan
+        print(new_query)
         return
-    elif (k == "c"): # to show the input for rdf3x
-        print str(new_query.show2())
+    elif k == "c":  # to show the input for rdf3x
+        print(new_query.show2())
         return
 
-    if (new_query == None): # if the query could not be answered by the endpoints
+    if new_query is None:  # if the query could not be answered by the endpoints
         time2 = time() - time1
         t1 = time2
         tn = time2
-        pt= time2
+        pt = time2
         printInfo()
         return
 
     plan = Plan.createPlan(new_query, a, wc, buffer_size, contact, endpointType)
-
     pt = time() - time1
-    #print 'creando procesos'
+    # print('creando procesos')
     p2 = Process(target=plan.execute, args=(res,))
     p2.start()
-    p3 = Process(target=conclude, args=(res,p2, printResults))
+    p3 = Process(target=conclude, args=(res, p2, printResults))
     p3.start()
     signal.signal(12, onSignal1)
 
@@ -98,13 +97,14 @@ def runQuery(query_file, endpoint_file, buffer_size, simulated, res,
         #     continue
         #   break
         if p2.is_alive() and not p3.is_alive():
-           try:
-             os.kill(p2.pid, 9)
-           except Exception as ex:
-             continue
-           break
+            try:
+                os.kill(p2.pid, 9)
+            except Exception as ex:
+                continue
+            break
         elif not p2.is_alive() and not p3.is_alive():
-           break
+            break
+
 
 def conclude(res, p2, printResults):
     signal.signal(12, onSignal2)
@@ -114,40 +114,40 @@ def conclude(res, p2, printResults):
     global cn
     ri = res.get()
     
-    if (printResults):
-        if (ri == "EOF"):
+    if printResults:
+        if ri == "EOF":
             time2 = time() - time1
             t1 = time2
             tn = time2
-            print "Empty set." 
+            print("Empty set.")
             printInfo()
             return
 
-        while (ri != "EOF"):
+        while ri != "EOF":
             cn = cn + 1
             if cn == 1:
-                time2=time() - time1
+                time2 = time() - time1
                 t1 = time2
                 c1 = 1
-            print ri
+            print(ri)
             ri = res.get(True)
         printInfo()
 
     else:
-        if (ri == "EOF"):
+        if ri == "EOF":
             time2 = time() - time1
             t1 = time2
             tn = time2
             printInfo()
             return
 
-        while (ri != "EOF"):
+        while ri != "EOF":
             cn = cn + 1
             if cn == 1:
-                time2=time() - time1
+                time2 = time() - time1
                 t1 = time2
                 c1 = 1
-            #print ri
+            # print(ri)
             ri = res.get(True)
         printInfo()
     
@@ -155,41 +155,45 @@ def conclude(res, p2, printResults):
 def printInfo():
     global tn
     if tn == -1:
-       tn = time() - time1
+        tn = time() - time1
     l = (qname + "\t" + str(dt) + "\t" + str(pt) + "\t" + str(t1) + "\t"
          + str(tn) + "\t" + str(c1) + "\t" + str(cn))
-    print l
+    print(l)
     logger.info(l)
 
+
 def onSignal1(s, stackframe):
-    #print 'entre en Signal1'
+    # print('entre en Signal1')
     cs = active_children()
     for c in cs:
-      try:
-        os.kill(c.pid, s)
-      except OSError as ex:
-        continue
+        try:
+            os.kill(c.pid, s)
+        except OSError as ex:
+            continue
     sys.exit(s)
+
 
 def onSignal2(s, stackframe):
     printInfo()
     sys.exit(s)
 
+
 def usage():
     usage_str = ("Usage: {program} -e <endpoints_file> -q <query_file> -b "
-                 +"<buffer_size> -s <simulated> -p <plan> -o <sparql1.1> -d "
-                 +"<decomposition> -a <adaptive> -k <special> "
-                 +"-w <withoutCounts>\n where \n<simulated>, "
-                 +"<adaptive> <sparql1.1> and <withoutCounts> is one in [True, "
-                 +"False], \n<plan> is one in [b, ll, naive, d] (bushy plan, "
-                 +"left linear plan, naive binary tree plan, only decompose), "
-                 +"\n<decomposition> is one in [EG, SSGS, SSGM] (Exclusive "
-                 +"Groups, Star Shaped Group Single Endpoint, Star Shaped "
-                 +"Group Multiple Endpoints) and \n<special> is one in [y, c] "
-                 +"(y is for showing the plan, and c is for decomposicion "
-                 +"without using service operator, and using UNION to indicate "
-                 +"joins.\n")
-    print usage_str.format(program = sys.argv[0]),
+                 + "<buffer_size> -s <simulated> -p <plan> -o <sparql1.1> -d "
+                 + "<decomposition> -a <adaptive> -k <special> "
+                 + "-w <withoutCounts>\n where \n<simulated>, "
+                 + "<adaptive> <sparql1.1> and <withoutCounts> is one in [True, "
+                 + "False], \n<plan> is one in [b, ll, naive, d] (bushy plan, "
+                 + "left linear plan, naive binary tree plan, only decompose), "
+                 + "\n<decomposition> is one in [EG, SSGS, SSGM] (Exclusive "
+                 + "Groups, Star Shaped Group Single Endpoint, Star Shaped "
+                 + "Group Multiple Endpoints) and \n<special> is one in [y, c] "
+                 + "(y is for showing the plan, and c is for decomposicion "
+                 + "without using service operator, and using UNION to indicate "
+                 + "joins.\n")
+    print(usage_str.format(program=sys.argv[0]))
+
 
 def get_options(argv):
     try:
@@ -246,6 +250,7 @@ def get_options(argv):
     return (endpointfile, queryfile, buffersize, simulated,
             decomposition, plan, one_point_one, adaptive, withoutCounts, k, endpointType, printResults)
 
+
 def main(argv):
     # manager = Manager()
     # res = manager.Queue()
@@ -254,10 +259,11 @@ def main(argv):
     (endpoint, query, buffersize, simulated,
      decomposition, plan, oo, a, wc, k, endpointType, printResults) = get_options(argv[1:])
     try:
-       runQuery(query, endpoint, buffersize, simulated, res,
-             decomposition, plan, oo, a, wc, k, endpointType, printResults)
+        runQuery(query, endpoint, buffersize, simulated, res,
+                 decomposition, plan, oo, a, wc, k, endpointType, printResults)
     except Exception as ex:
-       print ex
+        print(ex)
+
 
 if __name__ == '__main__':
     main(sys.argv)

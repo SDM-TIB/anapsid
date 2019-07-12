@@ -1,31 +1,33 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements the Xproject operator.
 The intermediate results are represented in a queue. 
 
 @author: Maribel Acosta Deibe
-'''
+"""
+
 from multiprocessing import Queue
+
 
 class Xproject(object):
     
     def __init__(self, vars):
-        self.input       = Queue()
-        self.qresults   = Queue()
-        self.vars  = vars
+        self.input = Queue()
+        self.qresults = Queue()
+        self.vars = vars
         
     def execute(self, left, dummy, out):
         # Executes the Xproject.
         self.left = left
         self.qresults = out
         tuple = self.left.get(True)
-        while (not(tuple == "EOF")):
+        while not(tuple == "EOF"):
             res = {}
             for var in self.vars:
                 var = var.name[1:]
                 aux = tuple.get(var, '')
-                res.update({var:aux})
+                res.update({var: aux})
             
             self.qresults.put(res)
             tuple = self.left.get(True)
@@ -33,4 +35,3 @@ class Xproject(object):
         # Put EOF in queue and exit. 
         self.qresults.put("EOF")
         return
-    

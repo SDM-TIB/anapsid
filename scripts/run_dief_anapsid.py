@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-'''
+"""
 Created on Jan 14, 2011
 Script to execute Anapsid.
 Use signal 12 to terminate the script and obtain the results until that moment
@@ -9,12 +9,12 @@ Use signal 12 to terminate the script and obtain the results until that moment
 @author: Gabriela Montoya
 
 Last modification: June, 2013.
-'''
-
+"""
 import getopt
-import sys, os, signal
-import string
-from multiprocessing import Process, Queue, active_children, Manager
+import sys
+import os
+import signal
+from multiprocessing import Process, Queue, active_children
 from time import time
 from ANAPSID.Planner import Plan
 from ANAPSID.Planner.Plan import contactSource, contactProxy
@@ -27,9 +27,9 @@ def runQuery(query_file, endpoint_file, buffer_size, simulated, res, decompositi
     else:
         contact = contactSource
     query = open(query_file).read()
-    pos = string.rfind(query_file, "/")
+    pos = query_file.rfind("/")
     qu = query_file[pos + 1:]
-    pos2 = string.rfind(qu, ".")
+    pos2 = qu.rfind(".")
     if pos2 > -1:
         qu = qu[:pos2]
     global qname
@@ -65,13 +65,13 @@ def runQuery(query_file, endpoint_file, buffer_size, simulated, res, decompositi
     dt = time() - time1
 
     if (p == "d") or (k == "y"):  # to show the decomposition or the plan
-        print str(new_query)
+        print(new_query)
         return
-    elif (k == "c"):  # to show the input for rdf3x
-        print str(new_query.show2())
+    elif k == "c":  # to show the input for rdf3x
+        print(new_query.show2())
         return
 
-    if (new_query == None):  # if the query could not be answered by the endpoints
+    if new_query is None:  # if the query could not be answered by the endpoints
         time2 = time() - time1
         t1 = time2
         tn = time2
@@ -85,7 +85,7 @@ def runQuery(query_file, endpoint_file, buffer_size, simulated, res, decompositi
     plan = Plan.createPlan(new_query, a, wc, buffer_size, contact, endpointType)
 
     pt = time() - time1
-    # print 'creando procesos'
+    # print('creando procesos')
     p2 = Process(target=plan.execute, args=(res,))
     p2.start()
     p3 = Process(target=conclude, args=(res, p2, printResults))
@@ -119,14 +119,14 @@ def conclude(res, p2, printResults, traces=True):
 
     ri = res.get()
 
-    if (printResults):
-        if (ri == "EOF"):
+    if printResults:
+        if ri == "EOF":
             nexttime(time1)
-            print "Empty set."
+            print("Empty set.")
             printInfo()
             return
 
-        while (ri != "EOF"):
+        while ri != "EOF":
             cn = cn + 1
             if cn == 1:
                 time2 = time() - time1
@@ -171,6 +171,7 @@ def conclude(res, p2, printResults, traces=True):
     resulttime.close()
     p2.terminate()
 
+
 def nexttime(time1):
     global tn
     time2 = time() - time1
@@ -182,8 +183,8 @@ def printInfo():
     global resulttime
     if tn == -1:
         tn = time() - time1
-    l = (qname + "\t" + str(dt) + "\t" + str(pt) + "\t" + str(t1) + "\t"  + str(tn) + "\t" + str(c1) + "\t" + str(cn))
-    print l
+    l = (qname + "\t" + str(dt) + "\t" + str(pt) + "\t" + str(t1) + "\t" + str(tn) + "\t" + str(c1) + "\t" + str(cn))
+    print(l)
     resulttime.write(l)
 
 
@@ -191,7 +192,7 @@ def printtraces():
     global tn
     global resulttrace
 
-    if tn ==-1:
+    if tn == -1:
         tn = time() - time1
 
     lr = (qname + ',' + str(cn) + ',' + str(tn))
@@ -232,7 +233,7 @@ def usage():
                  + "(y is for showing the plan, and c is for decomposicion "
                  + "without using service operator, and using UNION to indicate "
                  + "joins.\n")
-    print usage_str.format(program=sys.argv[0]),
+    print(usage_str.format(program=sys.argv[0]),)
 
 
 def get_options(argv):
@@ -288,7 +289,8 @@ def get_options(argv):
     if (not endpointfile and not one_point_one) or not queryfile:
         usage()
         sys.exit(1)
-    return (endpointfile, queryfile, buffersize, simulated, decomposition, plan, one_point_one, adaptive, withoutCounts, k, endpointType, printResults, result_folder)
+    return (endpointfile, queryfile, buffersize, simulated, decomposition, plan, one_point_one, adaptive,
+            withoutCounts, k, endpointType, printResults, result_folder)
 
 
 def main(argv):
@@ -296,11 +298,13 @@ def main(argv):
     # res = manager.Queue()
     res = Queue()
     time1 = time()
-    (endpoint, query, buffersize, simulated, decomposition, plan, oo, a, wc, k, endpointType, printResults, result_folder) = get_options(argv[1:])
+    (endpoint, query, buffersize, simulated, decomposition, plan, oo, a,
+     wc, k, endpointType, printResults, result_folder) = get_options(argv[1:])
     try:
-        runQuery(query, endpoint, buffersize, simulated, res, decomposition, plan, oo, a, wc, k, endpointType, printResults, result_folder)
+        runQuery(query, endpoint, buffersize, simulated, res, decomposition, plan, oo, a,
+                 wc, k, endpointType, printResults, result_folder)
     except Exception as ex:
-        print ex
+        print(ex)
 
 
 if __name__ == '__main__':

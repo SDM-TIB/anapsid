@@ -1,26 +1,27 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements the Xgoptional operator.
 The intermediate results are represented as queues.
 
 @author: Maribel Acosta Deibe
-'''
+"""
 from multiprocessing import Queue
 from time import time
 from ANAPSID.Operators.Optional import Optional
-from OperatorStructures import Record, RJTTail
+from .OperatorStructures import Record, RJTTail
+
 
 class Xgoptional(Optional):
 
     def __init__(self, vars_left, vars_right):
-        self.left_table  = dict()
+        self.left_table = dict()
         self.right_table = dict()
-        self.qresults    = Queue()
-        self.bag         = []
-        self.vars_left   = set(vars_left)
-        self.vars_right  = set(vars_right)
-        self.vars        = list(self.vars_left & self.vars_right)
+        self.qresults = Queue()
+        self.bag = []
+        self.vars_left = set(vars_left)
+        self.vars_right = set(vars_right)
+        self.vars = list(self.vars_left & self.vars_right)
 
     def instantiate(self, d):
         newvars_left = self.vars_left - set(d.keys())
@@ -34,8 +35,8 @@ class Xgoptional(Optional):
 
     def execute(self, left, right, out):
         # Executes the Xgoptional.
-        self.left     = left
-        self.right    = right
+        self.left = left
+        self.right = right
         self.qresults = out
 
         # Initialize tuples.
@@ -43,9 +44,9 @@ class Xgoptional(Optional):
         tuple2 = None
 
         # Get the tuples from the queues.
-        while (not(tuple1 == "EOF") or not(tuple2 == "EOF")):
+        while not(tuple1 == "EOF") or not(tuple2 == "EOF"):
             # Try to get and process tuple from left queue.
-            if (not(tuple1 == "EOF")):
+            if not(tuple1 == "EOF"):
                 try:
                     tuple1 = self.left.get(False)
                     if not(tuple1 == "EOF"):
@@ -58,7 +59,7 @@ class Xgoptional(Optional):
                     pass
 
             # Try to get and process tuple from right queue.
-            if (not(tuple2 == "EOF")):
+            if not(tuple2 == "EOF"):
                 try:
                     tuple2 = self.right.get(False)
                     if not(tuple2 == 'EOF'):
@@ -71,7 +72,6 @@ class Xgoptional(Optional):
 
         # Perform the last probes.
         self.stage3()
-
 
     def stage1(self, tuple, tuple_rjttable, other_rjttable, vars):
         # Stage 1: While one of the sources is sending data.
@@ -92,11 +92,11 @@ class Xgoptional(Optional):
         if resource in other_rjttable:
             other_rjttable.get(resource).updateRecords(record)
             other_rjttable.get(resource).setRJTProbeTS(probeTS)
-            #other_rjttable.get(resource).append(record)
+            # other_rjttable.get(resource).append(record)
         else:
             tail = RJTTail(record, float("inf"))
             other_rjttable[resource] = tail
-            #other_rjttable[resource] = [record]
+            # other_rjttable[resource] = [record]
 
     def stage2(self):
         # Stage 2: When both sources become blocked.
@@ -109,7 +109,7 @@ class Xgoptional(Optional):
         for tuple in self.bag:
             res_right = {}
             for var in self.vars_right:
-                res_right.update({var:''})
+                res_right.update({var: ''})
             res = res_right
             res.update(tuple)
             self.qresults.put(res)

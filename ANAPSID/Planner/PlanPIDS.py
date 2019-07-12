@@ -1,4 +1,4 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Represents an adaptive plan, where a process is created in every
@@ -9,43 +9,36 @@ as Python dictionaries and are stored in queues.
 @author: Gabriela Montoya
 
 Last modification: August, 2012
-'''
+"""
 from __future__ import division
 from multiprocessing import Process, Queue, active_children
 import socket
 import urllib
 import string
-import time
-import signal
-import sys, os
+import sys
+import os
 from SPARQLWrapper import SPARQLWrapper, JSON, N3
-from ANAPSID.Catalog.Catalog import Catalog
 from ANAPSID.AnapsidOperators.Xgjoin import Xgjoin
-from ANAPSID.AnapsidOperators.Xnjoin import Xnjoin
 from ANAPSID.AnapsidOperators.Xgoptional import Xgoptional
 from ANAPSID.AnapsidOperators.Xunion import Xunion
-from ANAPSID.AnapsidOperators.Xproject import Xproject
-from ANAPSID.NonBlockingOperators.SymmetricHashJoin import SymmetricHashJoin
 from ANAPSID.NonBlockingOperators.NestedHashJoin import NestedHashJoin
 from ANAPSID.BlockingOperators.HashJoin import HashJoin
 from ANAPSID.BlockingOperators.HashOptional import HashOptional
-from ANAPSID.BlockingOperators.NestedLoopOptional import NestedLoopOptional
-from ANAPSID.BlockingOperators.NestedLoopJoin import NestedLoopJoin
 from ANAPSID.BlockingOperators.Union import Union
 from ANAPSID.Decomposer.Tree import Leaf, Node
-from ANAPSID.Decomposer.services import Service, Argument, Triple, Filter, Optional
-from ANAPSID.Decomposer.services import UnionBlock, JoinBlock, Query
+from ANAPSID.Decomposer.services import Service, Optional
+from ANAPSID.Decomposer.services import UnionBlock
+
 
 def contactSource(server, query, queue, buffersize=16384):
-    '''
+    """
     Contacts the datasource (i.e. real endpoint).
     Every tuple in the answer is represented as Python dictionaries
     and is stored in a queue.
-    '''
-
+    """
     # Build the query and contact the source.
     sparql = SPARQLWrapper(server)
-    #print "query: "+str(query)
+    # print("query: "+str(query))
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     res = sparql.query()
@@ -66,28 +59,29 @@ def contactSource(server, query, queue, buffersize=16384):
             for elem in reslist:
                 queue.put(elem)
     else:
-        #print res
-        print ("the source "+str(server)+" answered in "+f+" format, instead of"
-               +" the JSON format required, then that answer will be ignored")
-    #Close the queue
-    if b == None:
+        # print(res)
+        print("the source " + str(server) + " answered in " + f + " format, instead of"
+              + " the JSON format required, then that answer will be ignored")
+    # Close the queue
+    if b is None:
         queue.put("EOF")
     return b
 
+
 def contactProxy(server, query, queue, buffersize=16384):
-    '''
+    """
     Contacts the proxy (i.e. simulator that can divede the answer in packages)
     Every tuple in the answer is represented as Python dictionaries
     and is stored in a queue.
-    '''
+    """
     # Encode the query as an url string.
     query = urllib.quote(query.encode('utf-8'))
     format = urllib.quote("application/sparql-results+json".encode('utf-8'))
-    #Get host and port from "server".
+    # Get host and port from "server".
     [http, server] = server.split("http://")
     host_port = server.split(":")
 
-    port= host_port[1].split("/")[0]
+    port = host_port[1].split("/")[0]
 
     # Create socket, connect it to server and send the query.
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -104,10 +98,10 @@ def contactProxy(server, query, queue, buffersize=16384):
     aux2 = ""
     b = None
     lb = True
-    #Receive the rest of the messages.
+    # Receive the rest of the messages.
     while True:
         data = s.recv(buffersize)
-        #print "data_contactProxy: "+str(data)
+        # print("data_contactProxy: "+str(data))
         if len(data) == 0:
             continue
         if tam == -1:
@@ -120,7 +114,7 @@ def contactProxy(server, query, queue, buffersize=16384):
                     tam = int(rest[:pos2])
         if ac == -1:
             aux2 = aux2 + data
-            pos = (aux2).find('\n\r\n')
+            pos = aux2.find('\n\r\n')
             if pos > -1:
                 ac = len(aux2) - pos - 3
         else:
@@ -132,13 +126,13 @@ def contactProxy(server, query, queue, buffersize=16384):
             l = reslist[0]
             p = l.find(', \"boolean\": ')
             if p >= 0 and len(l) > p + 13:
-                #print "contactProxy_l: "+str(l)
-		b = (l[p+13] == 't')
+                # print("contactProxy_l: "+str(l))
+                b = (l[p+13] == 't')
                 lb = False
         for elem in reslist:
-            pos1 = string.find(elem, "    {")
-            pos2 = string.find(elem, "}}")
-            if ((pos1>-1) and (pos2>-1)):
+            pos1 = elem.find("    {")
+            pos2 = elem.find("}}")
+            if (pos1 > -1) and (pos2 > -1):
                 str_t = elem[pos1:pos2+2]
                 dict_t = eval(str_t.rstrip())
                 res = {}
@@ -151,42 +145,38 @@ def contactProxy(server, query, queue, buffersize=16384):
                 aux = elem
         if tam > -1 and ac >= tam:
             break
-    if b == None:
+    if b is None:
         queue.put("EOF")
-    #Close the connection
+    # Close the connection
     s.close()
     return b
 
-def createPlan(query, adaptive, buffersize, c):
 
-    operatorTree = includePhysicalOperatorsQuery(query, adaptive,
-                                                 buffersize, c)
-    #print(operatorTree.aux(""))
+def createPlan(query, adaptive, buffersize, c):
+    operatorTree = includePhysicalOperatorsQuery(query, adaptive, buffersize, c)
+    # print(operatorTree.aux(""))
     return operatorTree
 
+
 def includePhysicalOperatorsQuery(query, a, buffersize, c):
-    return includePhysicalOperatorsUnionBlock(query, query.body,
-                                              a, buffersize, c)
+    return includePhysicalOperatorsUnionBlock(query, query.body, a, buffersize, c)
+
 
 def includePhysicalOperatorsUnionBlock(query, ub, a, buffersize, c):
-
     r = []
     for jb in ub.triples:
-        r.append(includePhysicalOperatorsJoinBlock(query, jb,
-                                                   a, buffersize, c))
+        r.append(includePhysicalOperatorsJoinBlock(query, jb, a, buffersize, c))
 
     while len(r) > 1:
         left = r.pop(0)
         right = r.pop(0)
 
-        all_variables  = left.vars | right.vars
+        all_variables = left.vars | right.vars
 
         if a:
-            n =  TreePlan(Xunion(left.vars, right.vars, query.distinct),
-                          all_variables, left, right)
+            n = TreePlan(Xunion(left.vars, right.vars), all_variables, left, right)
         else:
-            n =  TreePlan(Union(left.vars, right.vars, query.distinct),
-                          all_variables, left, right)
+            n = TreePlan(Union(left.vars, right.vars, query.distinct), all_variables, left, right)
         r.append(n)
 
     if len(r) == 1:
@@ -194,40 +184,35 @@ def includePhysicalOperatorsUnionBlock(query, ub, a, buffersize, c):
     else:
         return None
 
-def includePhysicalOperatorsOptional(left, rightList, a):
 
+def includePhysicalOperatorsOptional(left, rightList, a):
     l = left
 
     for right in rightList:
-        all_variables  = left.vars | right.vars
+        all_variables = left.vars | right.vars
         if a:
-            l = TreePlan(Xgoptional(left.vars, right.vars),
-                         all_variables, l, right)
+            l = TreePlan(Xgoptional(left.vars, right.vars), all_variables, l, right)
         else:
-            l = TreePlan(HashOptional(left.vars, right.vars),
-                         all_variables, l, right)
+            l = TreePlan(HashOptional(left.vars, right.vars), all_variables, l, right)
     return l
 
-def includePhysicalOperatorsJoinBlock(query, jb, a, buffersize, c):
 
+def includePhysicalOperatorsJoinBlock(query, jb, a, buffersize, c):
     tl = []
     ol = []
 
     if isinstance(jb.triples, list):
         for bgp in jb.triples:
             if isinstance(bgp, Node) or isinstance(bgp, Leaf):
-                tl.append(includePhysicalOperators(query, bgp, a,
-                                                   buffersize, c))
+                tl.append(includePhysicalOperators(query, bgp, a, buffersize, c))
             elif isinstance(bgp, Optional):
-                ol.append(includePhysicalOperatorsUnionBlock(query,
-                          bgp.bgg, a, buffersize, c))
+                ol.append(includePhysicalOperatorsUnionBlock(query, bgp.bgg, a, buffersize, c))
             elif isinstance(bgp, UnionBlock):
-                tl.append(includePhysicalOperatorsUnionBlock(query,
-                                                             bgp, a, buffersize, c))
+                tl.append(includePhysicalOperatorsUnionBlock(query, bgp, a, buffersize, c))
     elif isinstance(jb.triples, Node) or isinstance(jb.triples, Leaf):
         tl = [includePhysicalOperators(query, jb.triples, a, buffersize, c)]
-    else: # this should never be the case..
-        print "type of triples: "+str(type(jb.triples))
+    else:  # this should never be the case..
+        print("type of triples: " + str(type(jb.triples)))
 
     while len(tl) > 1:
         l = tl.pop(0)
@@ -242,9 +227,10 @@ def includePhysicalOperatorsJoinBlock(query, jb, a, buffersize, c):
     else:
         return None
 
+
 def includePhysicalOperatorJoin(a, l, r):
     join_variables = l.vars & r.vars
-    all_variables  = l.vars | r.vars
+    all_variables = l.vars | r.vars
 
     if a:
         if l.allTriplesLowSelectivity() or (len(join_variables) == 0):
@@ -253,37 +239,34 @@ def includePhysicalOperatorJoin(a, l, r):
             lsc = l.getCardinality()
             c = (lsc <= 30)
             if c and not r.allTriplesLowSelectivity():
-                c = c and (lsc <= 0.3*r.getCardinality())
+                c = c and (lsc <= 0.3 * r.getCardinality())
 
         if (l.constantPercentage() >= 0.5) and (len(join_variables) > 0) and c:
             n = TreePlan(NestedHashJoin(join_variables), all_variables, l, r)
         else:
-            n =  TreePlan(Xgjoin(join_variables), all_variables, l, r)
+            n = TreePlan(Xgjoin(join_variables), all_variables, l, r)
     else:
-        n =  TreePlan(HashJoin(join_variables), all_variables, l, r)
+        n = TreePlan(HashJoin(join_variables), all_variables, l, r)
     return n
 
-def includePhysicalOperators(query, tree, a, buffersize, c):
 
+def includePhysicalOperators(query, tree, a, buffersize, c):
     if isinstance(tree, Leaf):
         if isinstance(tree.service, Service):
             return IndependentOperator(query, tree, c, buffersize)
         elif isinstance(tree.service, UnionBlock):
-            return includePhysicalOperatorsUnionBlock(query, tree.service,
-                                                      a, buffersize, c)
+            return includePhysicalOperatorsUnionBlock(query, tree.service, a, buffersize, c)
         else:
-            print "Plan.py:258"
+            print("PlanPIDS.py:260")
 
     elif isinstance(tree, Node):
-
-        left_subtree = includePhysicalOperators(query, tree.left,
-                                                a, buffersize, c)
-        right_subtree = includePhysicalOperators(query, tree.right,
-                                                 a, buffersize, c)
+        left_subtree = includePhysicalOperators(query, tree.left, a, buffersize, c)
+        right_subtree = includePhysicalOperators(query, tree.right, a, buffersize, c)
         return includePhysicalOperatorJoin(a, left_subtree, right_subtree)
 
+
 class IndependentOperator(object):
-    '''
+    """
     Implements an operator that can be resolved independently.
 
     It receives as input the url of the server to be contacted,
@@ -293,9 +276,8 @@ class IndependentOperator(object):
     The execute() method reads tuples from the input queue and
     response message and the buffer size (length of the string)
     place them in the output queue.
-    '''
+    """
     def __init__(self, query, tree, c, buffersize=16384):
-
         (e, sq, vs) = tree.getInfoIO(query)
         self.contact = c
         self.server = e
@@ -309,11 +291,10 @@ class IndependentOperator(object):
 
     def instantiate(self, d):
         new_tree = self.tree.instantiate(d)
-        return IndependentOperator(self.query, new_tree, self.contact,
-                                   self.buffersize)
+        return IndependentOperator(self.query, new_tree, self.contact, self.buffersize)
 
     def getCardinality(self):
-        if self.cardinality == None:
+        if self.cardinality is None:
             self.cardinality = askCount(self.query, self.tree, set(), self.contact)
         return self.cardinality
 
@@ -323,7 +304,7 @@ class IndependentOperator(object):
             if v == vars:
                 c = c2
                 break
-        if c == None:
+        if c is None:
             if len(vars) == 0:
                 c = self.getCardinality()
             else:
@@ -361,18 +342,18 @@ class IndependentOperator(object):
             # Get the next item in queue.
             res = self.q.get(True)
             # Put the result into the output queue.
-            #print res
+            # print(res)
             outputqueue.put(res)
 
             # Check if there's no more data.
-            if (res == "EOF"):
+            if res == "EOF":
                 break
 
     def __repr__(self):
         return str(self.tree)
 
-def askCount(query, tree, vars, contact):
 
+def askCount(query, tree, vars, contact):
     (server, query) = tree.getCount(query, vars)
 
     q = Queue()
@@ -384,16 +365,17 @@ def askCount(query, tree, vars, contact):
     q.get()
     return int(v)
 
-def onSignal(s, stackframe):
 
+def onSignal(s, stackframe):
     cs = active_children()
     for c in cs:
         os.kill(c.pid, s)
 
     sys.exit(s)
 
+
 class DependentOperator(object):
-    '''
+    """
     Implements an operator that must be resolved with an instance.
 
     It receives as input the url of the server to be contacted,
@@ -403,24 +385,21 @@ class DependentOperator(object):
 
     The execute() method performs a semantic check. If the instance
     can be derreferenced from the source, it will contact the source.
-    '''
-
-    def __init__(self, server, query, vs, buffersize): #headersize ???
+    """
+    def __init__(self, server, query, vs, buffersize):  # headersize ???
         self.server = server
-        #self.filename = filename
+        # self.filename = filename
         self.query = query
-        #self.headersize = headersize
+        # self.headersize = headersize
         self.buffersize = buffersize
         self.q = None
         self.q = Queue()
         self.atts = vs
-        self.prefs = [] #query.prefs
-        #self.atts = self.getQueryAttributes()
-        #self.catalog = Catalog("/home/gabriela/Anapsid/src/Catalog/endpoints.desc")
-
+        self.prefs = []  # query.prefs
+        # self.atts = self.getQueryAttributes()
+        # self.catalog = Catalog("/home/gabriela/Anapsid/src/Catalog/endpoints.desc")
 
     def execute(self, variables, instances, outputqueue):
-
         global pids
         self.query = open(self.filename).read()
         # ? signal.signal(12, onSignal)
@@ -430,7 +409,7 @@ class DependentOperator(object):
             self.query = string.replace(self.query, "?" + variables[i], "<" + instances[i] + ">")
 
         # If the instance has no ?query. Example: DESCRIBE ---
-        if (instances[0].find("sparql?query") == -1):
+        if instances[0].find("sparql?query") == -1:
             pos = instances[0].find("/resource")
             pre = instances[0][0:pos]
 
@@ -442,7 +421,7 @@ class DependentOperator(object):
                     # Contact the source.
                     pos = prefixes.index(pre)
                     self.p = Process(target=contactSource,
-                              args=(server, self.query, self.headersize, self.buffersize, self.q,))
+                                     args=(server, self.query, self.headersize, self.buffersize, self.q,))
                     self.p.start()
                     pids.append(self.p.pid)
 
@@ -453,7 +432,7 @@ class DependentOperator(object):
                         res = self.q.get()
 
 #                        #Get the variables from the answer
-#                        if (first_tuple):
+#                        if first_tuple:
 #                            vars = res.keys()
 #                            outputqueue.put(vars)
 #                            first_tuple = False
@@ -462,7 +441,7 @@ class DependentOperator(object):
                         outputqueue.put(res)
 
                         # Check if there's no more data.
-                        if (res == "EOF"):
+                        if res == "EOF":
                             break
 
                 except ValueError:
@@ -470,33 +449,33 @@ class DependentOperator(object):
                     outputqueue.put(self.atts)
                     outputqueue.put("EOF")
 
-
     def getQueryAttributes(self):
         # Read the query from file and apply lower case.
         query = open(self.filename).read()
-        query2 = string.lower(query)
+        query2 = query.lower()
 
         # Extract the variables, separated by commas.
         # TODO: it supposes that there's no from clause.
-        begin = string.find(query2, "select")
+        begin = query2.find("select")
         begin = begin + len("select")
-        end = string.find(query2, "where")
+        end = query2.find("where")
         listatts = query[begin:end]
-        listatts = string.split(listatts, " ")
+        listatts = listatts.split(" ")
 
         # Iterate over the list of attributes, and delete "?".
         outlist = []
         for att in listatts:
-            if ((len(att) > 0) and (att[0] == '?')):
-                if ((att[len(att)-1] == ',') or (att[len(att)-1] == '\n')):
+            if (len(att) > 0) and (att[0] == '?'):
+                if (att[len(att)-1] == ',') or (att[len(att)-1] == '\n'):
                     outlist = outlist + [att[1:len(att)-1]]
                 else:
                     outlist = outlist + [att[1:len(att)]]
 
         return outlist
 
+
 class TreePlan(object):
-    '''
+    """
     Represents a plan to be executed by the engine.
 
     It is composed by a left node, a right node, and an operator node.
@@ -507,7 +486,7 @@ class TreePlan(object):
     It creates a process for every node of the plan.
     The left node is always evaluated.
     If the right node is an independent operator or a subtree, it is evaluated.
-    '''
+    """
     def __init__(self, operator, vars, left=None, right=None):
         self.operator = operator
         self.vars = vars
@@ -557,8 +536,7 @@ class TreePlan(object):
         return self.constantNumber()/self.places()
 
     def getCardinality(self):
-
-        if self.cardinality == None:
+        if self.cardinality is None:
             self.cardinality = self.operator.getCardinality(self.left, self.right)
         return self.cardinality
 
@@ -568,7 +546,7 @@ class TreePlan(object):
             if v == vars:
                 c = c2
                 break
-        if c == None:
+        if c is None:
             c = self.operator.getJoinCardinality(self.left, self.right, vars)
             self.joinCardinality.append((vars, c))
         return c
@@ -586,7 +564,7 @@ class TreePlan(object):
         # Evaluates the execution plan.
         global pids
         if self.left and self.right:
-            qleft  = Queue()
+            qleft = Queue()
             qright = Queue()
 
             # The left node is always evaluated.
@@ -595,7 +573,7 @@ class TreePlan(object):
             p1.start()
             pids.append(p1.pid)
 
-            if (self.operator.__class__.__name__ == "NestedHashJoin"):
+            if self.operator.__class__.__name__ == "NestedHashJoin":
                 self.p = Process(target=self.operator.execute,
                                  args=(qleft, self.right, outputqueue,))
                 self.p.start()
@@ -604,7 +582,7 @@ class TreePlan(object):
 
             # Check the right node to determine if evaluate it or not.
             if ((self.right.__class__.__name__ == "IndependentOperator") or
-                (self.right.__class__.__name__ == "TreePlan")):
+                    (self.right.__class__.__name__ == "TreePlan")):
                 qright = Queue()
                 p2 = Process(target=self.right.execute, args=(qright,))
                 p2.start()

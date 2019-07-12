@@ -1,23 +1,24 @@
-'''
+"""
 Created on Jul 10, 2011
 
 Implements the Xnjoin operator.
 The intermediate results are represented in a queue.
 
 @author: Maribel Acosta Deibe
-'''
+"""
 from multiprocessing import Queue
 from time import time
 from ANAPSID.Operators.Join import Join
-from OperatorStructures import Record, RJTTail
+from .OperatorStructures import Record, RJTTail
+
 
 class Xnjoin(Join):
 
     def __init__(self, vars):
-        self.left_table  = dict()
+        self.left_table = dict()
         self.right_table = dict()
-        self.qresults    = Queue()
-        self.vars        = vars
+        self.qresults = Queue()
+        self.vars = vars
 
     def instantiate(self, d):
         newvars = self.vars - set(d.keys())
@@ -29,21 +30,20 @@ class Xnjoin(Join):
 
     def execute(self, left, right, out):
         # Executes the Xgjoin.
-        self.left     = left
-        self.right    = right
+        self.left = left
+        self.right = right
         self.qresults = out
 
         # Get tuples from queue.
         tuple = self.left.get(True)
 
         # Get the tuples from the queues.
-        while (not(tuple == "EOF")):
+        while not(tuple == "EOF"):
             self.stage1(tuple, self.left_table, self.right_table)
             tuple = self.left.get(True)
 
         # Perform the last probes.
         self.stage3()
-
 
     def stage1(self, tuple, tuple_rjttable, other_rjttable):
         # Stage 1: While one of the sources is sending data.
@@ -64,11 +64,11 @@ class Xnjoin(Join):
         if resource in other_rjttable:
             other_rjttable.get(resource).updateRecords(record)
             other_rjttable.get(resource).setRJTProbeTS(probeTS)
-            #other_rjttable.get(resource).append(record)
+            # other_rjttable.get(resource).append(record)
         else:
             tail = RJTTail(record, float("inf"))
             other_rjttable[resource] = tail
-            #other_rjttable[resource] = [record]
+            # other_rjttable[resource] = [record]
 
     def stage2(self):
         # Stage 2: When both sources become blocked.
@@ -88,7 +88,7 @@ class Xnjoin(Join):
         if resource in rjttable:
             rjttable.get(resource).setRJTProbeTS(probeTS)
             list_records = rjttable[resource].records
-            #list_records = rjttable[resource]
+            # list_records = rjttable[resource]
 
             for record in list_records:
                 res = record.tuple.copy()
@@ -103,12 +103,12 @@ class Xnjoin(Join):
 
             # Contact the source.
             qright = Queue()
-            print "instances: "+str(instances)
+            print("instances: "+str(instances))
             self.right.execute(self.vars, instances, qright)
 
             # Get the tuples from right queue.
             rtuple = qright.get(True)
-            while (not(rtuple == "EOF")):
+            while not(rtuple == "EOF"):
                 # Build answer and produce it.
                 rtuple_copy = rtuple.copy()
                 rtuple_copy.update(tuple)
